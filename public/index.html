@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo Full stack</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <div>
+        <input type="text" id="signup-name" placeholder="name">
+        <input type="password" id="signup-pword">
+        <button onclick="signup()">submit</button>
+    </div>
+    <div>
+        <input type="text" id="signin-name" placeholder="name">
+        <input type="password" id="signin-pword">
+        <button onclick="signin()">submit</button>
+    </div>
+    <div>
+        todo list
+        <input type="text" name="todo" id="todo-text">
+        <button onclick="addtodo()">add</button>
+
+        <ul id="todo-list"></ul>
+
+        <button onclick="logout()">logout</button>
+    </div>
+
+    <script>
+        async function signup()
+        {
+            const uname=document.getElementById("signup-name").value;
+            const pword=document.getElementById("signup-pword").value;
+            await axios.post("http://localhost:3006/signup",{
+                uname:uname,
+                pword:pword
+            })
+            alert("You are signed up")
+        }
+
+        async function signin()
+        {
+            const uname=document.getElementById("signin-name").value;
+            const pword=document.getElementById("signin-pword").value;
+            await axios.post("http://localhost:3006/signin",{
+                uname:uname,pword:pword
+            })
+            localStorage.getItem("token",response.data.token)
+            alert("Signed in!!")
+            fetchTodos()
+        }
+        async function fetchTodos() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                alert('Please sign in first.');
+                return;
+            }
+
+            try {
+                const response = await axios.get(`${API_BASE}/todos`, { headers: { token } });
+                const todos = response.data;
+                const todoList = document.getElementById('todo-list');
+                todoList.innerHTML = '';
+
+                todos.forEach((todo, index) => {
+                    const li = document.createElement('li');
+                    li.textContent = `${todo.text} - ${todo.completed ? 'Completed' : 'Pending'}`;
+                    li.style.textDecoration = todo.completed ? 'line-through' : 'none';
+
+                    const completeButton = document.createElement('button');
+                    completeButton.textContent = 'Mark as Complete';
+                    completeButton.onclick = () => markComplete(todo.id);
+
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = 'Delete';
+                    deleteButton.onclick = () => deleteTodo(todo.id);
+
+                    li.appendChild(completeButton);
+                    li.appendChild(deleteButton);
+
+                    todoList.appendChild(li);
+                });
+            } catch (error) {
+                console.error('Fetch Todos Error:', error.response?.data || error.message);
+                alert('Failed to fetch todos.');
+            }
+        }
+
+        async function addtodo()
+        {
+            const token=localStorage.getItem("token")
+            const text=document.getElementById("todo-text").value
+
+            await axios.post("http//localhost:3006/todos",{text},{headers:{token}})
+            alert(response.data.message);
+            fetchTodos()
+        }
+        async function markComplete(todoId) {
+            const token = localStorage.getItem('token');
+
+            if (!token) {
+                alert('Please sign in first.');
+                return;
+            }
+
+            try {
+                const response = await axios.put(`${API_BASE}/todos/${todoId}/complete`, {}, { headers: { token } });
+                alert(response.data.message);
+                fetchTodos();
+            } catch (error) {
+                console.error('Mark Complete Error:', error.response?.data || error.message);
+                alert('Failed to mark todo as complete.');
+            }
+        }
+        async function deleteTodo(todoId) {
+            const token = localStorage.getItem('token');
+
+            if (!token) {
+                alert('Please sign in first.');
+                return;
+            }
+
+            try {
+                const response = await axios.delete(`${API_BASE}/todos/${todoId}`, { headers: { token } });
+                alert(response.data.message);
+                fetchTodos();
+            } catch (error) {
+                console.error('Delete Todo Error:', error.response?.data || error.message);
+                alert('Failed to delete todo.');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            alert('Logged out.');
+            document.getElementById('todo-list').innerHTML = '';
+        }
+    </script>
+</body>
+</html>
